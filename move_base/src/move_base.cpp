@@ -274,10 +274,14 @@ namespace move_base {
 
   void MoveBase::goalCB(const geometry_msgs::PoseStamped::ConstPtr& goal){
     ROS_DEBUG_NAMED("move_base","In ROS goal callback, wrapping the PoseStamped in the action message and re-sending to the server.");
+    boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_controller(*(controller_costmap_ros_->getCostmap()->getMutex()));
+    controller_costmap_ros_->resetLayers();
+    boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_planner(*(planner_costmap_ros_->getCostmap()->getMutex()));
+    planner_costmap_ros_->resetLayers();
+
     move_base_msgs::MoveBaseActionGoal action_goal;
     action_goal.header.stamp = ros::Time::now();
     action_goal.goal.target_pose = *goal;
-
     action_goal_pub_.publish(action_goal);
   }
 
