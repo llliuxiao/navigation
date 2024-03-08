@@ -43,6 +43,7 @@
 #include <boost/thread.hpp>
 
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/TwistStamped.h>
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -94,6 +95,7 @@ namespace move_base {
 
     //for commanding the base
     vel_pub_ = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+      vel_stamped_pub_ = nh.advertise<geometry_msgs::TwistStamped>("cmd_vel_stamped", 10);
     current_goal_pub_ = private_nh.advertise<geometry_msgs::PoseStamped>("current_goal", 0 );
 
     ros::NodeHandle action_nh("move_base");
@@ -511,6 +513,12 @@ namespace move_base {
     cmd_vel.linear.y = 0.0;
     cmd_vel.angular.z = 0.0;
     vel_pub_.publish(cmd_vel);
+
+    geometry_msgs::TwistStamped cmd_vel_stamped;
+    cmd_vel_stamped.twist = cmd_vel;
+    cmd_vel_stamped.header.stamp = ros::Time::now();
+    cmd_vel_stamped.header.frame_id = global_frame_;
+    vel_stamped_pub_.publish(cmd_vel_stamped);
   }
 
   bool MoveBase::isQuaternionValid(const geometry_msgs::Quaternion& q){
@@ -807,6 +815,7 @@ namespace move_base {
     boost::recursive_mutex::scoped_lock ecl(configuration_mutex_);
     //we need to be able to publish velocity commands
     geometry_msgs::Twist cmd_vel;
+    geometry_msgs::TwistStamped cmd_vel_stamped;
 
     //update feedback to correspond to our curent position
     geometry_msgs::PoseStamped global_pose;
@@ -918,6 +927,9 @@ namespace move_base {
                            cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z );
           last_valid_control_ = ros::Time::now();
           //make sure that we send the velocity command to the base
+          cmd_vel_stamped.header.stamp = ros::Time::now();
+          cmd_vel_stamped.header.frame_id = global_frame_;
+          vel_stamped_pub_.publish(cmd_vel_stamped);
           vel_pub_.publish(cmd_vel);
           if(recovery_trigger_ == CONTROLLING_R)
             recovery_index_ = 0;
@@ -955,6 +967,7 @@ namespace move_base {
       case CLEARING:
         ROS_DEBUG_NAMED("move_base","In clearing/recovery state");
         //we'll invoke whatever recovery behavior we're currently on if they're enabled
+        recovery_behavior_enabled_ = false;
         if(recovery_behavior_enabled_ && recovery_index_ < recovery_behaviors_.size()){
           ROS_DEBUG_NAMED("move_base_recovery","Executing behavior %u of %zu", recovery_index_+1, recovery_behaviors_.size());
 
