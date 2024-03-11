@@ -276,10 +276,7 @@ namespace move_base {
 
   void MoveBase::goalCB(const geometry_msgs::PoseStamped::ConstPtr& goal){
     ROS_DEBUG_NAMED("move_base","In ROS goal callback, wrapping the PoseStamped in the action message and re-sending to the server.");
-    boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_controller(*(controller_costmap_ros_->getCostmap()->getMutex()));
-    controller_costmap_ros_->resetLayers();
-    boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_planner(*(planner_costmap_ros_->getCostmap()->getMutex()));
-    planner_costmap_ros_->resetLayers();
+    clearCostMaps();
 
     move_base_msgs::MoveBaseActionGoal action_goal;
     action_goal.header.stamp = ros::Time::now();
@@ -344,12 +341,20 @@ namespace move_base {
 
   bool MoveBase::clearCostmapsService(std_srvs::Empty::Request &req, std_srvs::Empty::Response &resp){
     //clear the costmaps
-    boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_controller(*(controller_costmap_ros_->getCostmap()->getMutex()));
-    controller_costmap_ros_->resetLayers();
+      boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_controller(*(controller_costmap_ros_->getCostmap()->getMutex()));
+      controller_costmap_ros_->resetLayers();
 
-    boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_planner(*(planner_costmap_ros_->getCostmap()->getMutex()));
-    planner_costmap_ros_->resetLayers();
-    return true;
+      boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_planner(*(planner_costmap_ros_->getCostmap()->getMutex()));
+      planner_costmap_ros_->resetLayers();
+      return true;
+  }
+
+  void MoveBase::clearCostMaps() {
+      boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_controller(*(controller_costmap_ros_->getCostmap()->getMutex()));
+      controller_costmap_ros_->resetLayers();
+
+      boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock_planner(*(planner_costmap_ros_->getCostmap()->getMutex()));
+      planner_costmap_ros_->resetLayers();
   }
 
 
@@ -638,6 +643,8 @@ namespace move_base {
            (ros::Time::now() > attempt_end || planning_retries_ > uint32_t(max_planning_retries_))){
           //we'll move into our obstacle clearing mode
           state_ = CLEARING;
+          clearCostMaps();
+          ros::Duration(3.0).sleep();
           runPlanner_ = false;  // proper solution for issue #523
           publishZeroVelocity();
           recovery_trigger_ = PLANNING_R;
@@ -672,6 +679,8 @@ namespace move_base {
     publishZeroVelocity();
     //we have a goal so start the planner
     boost::unique_lock<boost::recursive_mutex> lock(planner_mutex_);
+    clearCostMaps();
+    ros::Duration(2.0).sleep();
     planner_goal_ = goal;
     runPlanner_ = true;
     planner_cond_.notify_one();
