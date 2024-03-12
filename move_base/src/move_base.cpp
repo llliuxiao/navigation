@@ -938,6 +938,7 @@ namespace move_base {
           //make sure that we send the velocity command to the base
           cmd_vel_stamped.header.stamp = ros::Time::now();
           cmd_vel_stamped.header.frame_id = global_frame_;
+          cmd_vel_stamped.twist = cmd_vel;
           vel_stamped_pub_.publish(cmd_vel_stamped);
           vel_pub_.publish(cmd_vel);
           if(recovery_trigger_ == CONTROLLING_R)
