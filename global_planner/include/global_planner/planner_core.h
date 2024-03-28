@@ -42,6 +42,9 @@
 #include <costmap_2d/costmap_2d.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 #include <nav_msgs/Path.h>
 #include <vector>
 #include <nav_core/base_global_planner.h>
@@ -171,6 +174,7 @@ class GlobalPlanner : public nav_core::BaseGlobalPlanner {
         costmap_2d::Costmap2D* costmap_;
         std::string frame_id_;
         ros::Publisher plan_pub_;
+        ros::Publisher robot_frame_plan_pub_;
         bool initialized_, allow_unknown_;
 
     private:
@@ -201,6 +205,11 @@ class GlobalPlanner : public nav_core::BaseGlobalPlanner {
         float convert_offset_;
 
         bool outline_map_;
+
+        geometry_msgs::PoseStamped last_goal;
+        std::vector<geometry_msgs::PoseStamped> last_plan;
+        tf2_ros::Buffer tfBuffer;
+        tf2_ros::TransformListener tfListener;
 
         dynamic_reconfigure::Server<global_planner::GlobalPlannerConfig> *dsrv_;
         void reconfigureCB(global_planner::GlobalPlannerConfig &config, uint32_t level);

@@ -276,7 +276,10 @@ namespace move_base {
 
   void MoveBase::goalCB(const geometry_msgs::PoseStamped::ConstPtr& goal){
     ROS_DEBUG_NAMED("move_base","In ROS goal callback, wrapping the PoseStamped in the action message and re-sending to the server.");
+    boost::unique_lock<boost::recursive_mutex> lock(planner_mutex_);
     clearCostMaps();
+    ros::Duration(2.0).sleep();
+    lock.unlock();
 
     move_base_msgs::MoveBaseActionGoal action_goal;
     action_goal.header.stamp = ros::Time::now();
@@ -644,7 +647,7 @@ namespace move_base {
           //we'll move into our obstacle clearing mode
           state_ = CLEARING;
           clearCostMaps();
-          ros::Duration(3.0).sleep();
+          ros::Duration(2.0).sleep();
           runPlanner_ = false;  // proper solution for issue #523
           publishZeroVelocity();
           recovery_trigger_ = PLANNING_R;
