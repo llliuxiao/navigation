@@ -244,30 +244,30 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
         return false;
     }
 
-    double dx = goal.pose.position.x - last_goal.pose.position.x;
-    double dy = goal.pose.position.y - last_goal.pose.position.y;
-    double delta_distance = sqrt(dx * dx + dy * dy);
-    if (!last_plan.empty() && delta_distance <= costmap_->getResolution()) {
-        int pointer = 0;
-        double min_distance;
-        for (;pointer < last_plan.size(); pointer++) {
-            dx = last_plan[pointer].pose.position.x - start.pose.position.x;
-            dy = last_plan[pointer].pose.position.y - start.pose.position.y;
-            delta_distance = sqrt(dx * dx + dy * dy);
-            if (pointer == 0 || delta_distance <= min_distance) min_distance = delta_distance;
-            else {
-                pointer -= 1;
-                break;
-            }
-        }
-        plan.clear();
-        for (;pointer < last_plan.size(); pointer++) {
-            plan.push_back(last_plan[pointer]);
-        }
-        last_plan = plan;
-        publishPlan(plan);
-        return !plan.empty();
-    }
+//    double dx = goal.pose.position.x - last_goal.pose.position.x;
+//    double dy = goal.pose.position.y - last_goal.pose.position.y;
+//    double delta_distance = sqrt(dx * dx + dy * dy);
+//    if (!last_plan.empty() && delta_distance <= costmap_->getResolution()) {
+//        int pointer = 0;
+//        double min_distance;
+//        for (;pointer < last_plan.size(); pointer++) {
+//            dx = last_plan[pointer].pose.position.x - start.pose.position.x;
+//            dy = last_plan[pointer].pose.position.y - start.pose.position.y;
+//            delta_distance = sqrt(dx * dx + dy * dy);
+//            if (pointer == 0 || delta_distance <= min_distance) min_distance = delta_distance;
+//            else {
+//                pointer -= 1;
+//                break;
+//            }
+//        }
+//        plan.clear();
+//        for (;pointer < last_plan.size(); pointer++) {
+//            plan.push_back(last_plan[pointer]);
+//        }
+//        last_plan = plan;
+//        publishPlan(plan);
+//        return !plan.empty();
+//    }
 
 
     double wx = start.pose.position.x;
@@ -365,16 +365,16 @@ void GlobalPlanner::publishPlan(const std::vector<geometry_msgs::PoseStamped>& p
 
     robot_frame_path.header.frame_id = "base_link";
     robot_frame_path.header.stamp = ros::Time::now();
-    geometry_msgs::TransformStamped transform = tfBuffer.lookupTransform("base_link", frame_id_, ros::Time(0));
+//    geometry_msgs::TransformStamped transform = tfBuffer.lookupTransform("base_link", frame_id_, ros::Time(0));
 
     // Extract the plan in world co-ordinates, we assume the path is all in the same frame
     for (unsigned int i = 0; i < path.size(); i++) {
         gui_path.poses[i] = path[i];
         geometry_msgs::PoseStamped pose;
-        tf2::doTransform(path[i], pose, transform);
-        robot_frame_path.poses.push_back(pose);
+//        tf2::doTransform(path[i], pose, transform);
+//        robot_frame_path.poses.push_back(pose);
     }
-    robot_frame_plan_pub_.publish(robot_frame_path);
+//    robot_frame_plan_pub_.publish(robot_frame_path);
     plan_pub_.publish(gui_path);
 }
 

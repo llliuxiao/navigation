@@ -22,6 +22,8 @@ find_package(catkin REQUIRED
         std_srvs
         tf2_geometry_msgs
         tf2_ros
+        isaac_sim
+        global_planner
 )
 find_package(Eigen3 REQUIRED)
 add_definitions(${EIGEN3_DEFINITIONS})
@@ -64,7 +66,11 @@ add_dependencies(move_base ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 add_executable(move_base_node
   src/move_base_node.cpp
 )
+add_executable(simple_move_base
+  src/simple_move_base.cpp
+)
 add_dependencies(move_base_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(simple_move_base ${EXTERNAL_LIBS} ${catkin_LIBRARIES})
 target_link_libraries(move_base_node move_base)
 set_target_properties(move_base_node PROPERTIES OUTPUT_NAME move_base)
 
