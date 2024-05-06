@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <tf2_ros/transform_listener.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include "costmap_2d/costmap_2d_ros.h"
 #include "actionlib/server/simple_action_server.h"
 #include "isaac_sim/PlanAction.h"
@@ -7,7 +8,6 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "tf2/utils.h"
 #include "angles/angles.h"
-#include <tf2_ros/static_transform_broadcaster.h>
 #include "geometry_msgs/TransformStamped.h"
 
 typedef actionlib::SimpleActionServer<isaac_sim::PlanAction> Server;
@@ -17,20 +17,23 @@ global_planner::GlobalPlanner *planner;
 void execute(const isaac_sim::PlanGoalConstPtr &goal, Server *as) {
     std::vector<geometry_msgs::PoseStamped> plan;
     isaac_sim::PlanResult result;
-    planner->makePlan(goal->start, goal->target, plan);
-    for (const auto &pose: plan) {
-        double dx, dy, yaw, x, y;
-        dx = pose.pose.position.x - goal->start.pose.position.x;
-        dy = pose.pose.position.y - goal->start.pose.position.y;
-        yaw = tf2::getYaw(goal->start.pose.orientation);
-        double sin_yaw = std::sin(yaw), cos_yaw = std::cos(yaw);
-        x = dx * cos_yaw - dy * sin_yaw;
-        y = dx * sin_yaw + dy * cos_yaw;
-        result.x.push_back(x);
-        result.y.push_back(y);
-        result.yaw.push_back(angles::normalize_angle(tf2::getYaw(goal->target.pose.orientation) - yaw));
+    if (planner->makePlan(goal->start, goal->target, plan)) {
+        for (const auto &pose: plan) {
+            double dx, dy, yaw, x, y;
+            dx = pose.pose.position.x - goal->start.pose.position.x;
+            dy = pose.pose.position.y - goal->start.pose.position.y;
+            yaw = tf2::getYaw(goal->start.pose.orientation);
+            double sin_yaw = -std::sin(yaw), cos_yaw = std::cos(yaw);
+            x = dx * cos_yaw - dy * sin_yaw;
+            y = dx * sin_yaw + dy * cos_yaw;
+            result.x.push_back(x);
+            result.y.push_back(y);
+            result.yaw.push_back(angles::normalize_angle(tf2::getYaw(goal->target.pose.orientation) - yaw));
+        }
+        as->setSucceeded(result);
+    } else {
+        as->setAborted();
     }
-    as->setSucceeded(result);
 }
 
 void static_transform() {
