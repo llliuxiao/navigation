@@ -9,10 +9,12 @@
 #include "tf2/utils.h"
 #include "angles/angles.h"
 #include "geometry_msgs/TransformStamped.h"
+#include "std_srvs/Empty.h"
 
 typedef actionlib::SimpleActionServer<isaac_sim::PlanAction> Server;
 
 global_planner::GlobalPlanner *planner;
+costmap_2d::Costmap2DROS *planner_costmap_ros;
 
 void execute(const isaac_sim::PlanGoalConstPtr &goal, Server *as) {
     std::vector<geometry_msgs::PoseStamped> plan;
@@ -34,6 +36,12 @@ void execute(const isaac_sim::PlanGoalConstPtr &goal, Server *as) {
     } else {
         as->setAborted();
     }
+}
+
+bool clear_costmap(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res) {
+    planner_costmap_ros->resetLayers();
+    ros::Duration(2.0).sleep();
+    return true;
 }
 
 void static_transform() {
@@ -60,11 +68,12 @@ int main(int argc, char **argv) {
     tf2_ros::Buffer buffer(ros::Duration(10));
     tf2_ros::TransformListener tf(buffer);
     static_transform();
-    auto *planner_costmap_ros = new costmap_2d::Costmap2DROS("costmap", buffer);
+    planner_costmap_ros = new costmap_2d::Costmap2DROS("costmap", buffer);
     planner = new global_planner::GlobalPlanner();
     planner->initialize("planner", planner_costmap_ros);
-    Server server(node, "plan", boost::bind(&execute, _1, &server), false);
-    server.start();
+    Server plan_server(node, "plan", boost::bind(&execute, _1, &plan_server), false);
+    ros::ServiceServer clear_costmap_server = node.advertiseService("clear_costmap", clear_costmap);
+    plan_server.start();
     ros::spin();
     return 0;
 }
