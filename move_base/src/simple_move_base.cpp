@@ -1,24 +1,19 @@
-#include <ros/ros.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include "costmap_2d/costmap_2d_ros.h"
-#include "actionlib/server/simple_action_server.h"
-#include "isaac_sim/PlanAction.h"
-#include "global_planner/planner_core.h"
-#include "geometry_msgs/PoseStamped.h"
-#include "tf2/utils.h"
-#include "angles/angles.h"
-#include "geometry_msgs/TransformStamped.h"
-#include "std_srvs/Empty.h"
+#include "move_base/simple_move_base.h"
 
-typedef actionlib::SimpleActionServer<isaac_sim::PlanAction> Server;
+SimpleMoveBase::SimpleMoveBase(tf2_ros::Buffer &tf_buffer) :
+        buffer(tf_buffer),
+        plan_server(node, "plan", boost::bind(&SimpleMoveBase::make_plan, this, _1), false) {
+    planner_costmap_ros = new costmap_2d::Costmap2DROS("costmap", buffer);
+    planner = new global_planner::GlobalPlanner();
+    planner->initialize("planner", planner_costmap_ros);
+    clear_server = node.advertiseService("clear_costmap", &SimpleMoveBase::clear, this);
+    plan_server.start();
+}
 
-global_planner::GlobalPlanner *planner;
-costmap_2d::Costmap2DROS *planner_costmap_ros;
-
-void execute(const isaac_sim::PlanGoalConstPtr &goal, Server *as) {
+void SimpleMoveBase::make_plan(const isaac_sim::PlanGoalConstPtr &goal) {
     std::vector<geometry_msgs::PoseStamped> plan;
     isaac_sim::PlanResult result;
+    geometry_msgs::PoseStamped start, target;
     if (planner->makePlan(goal->start, goal->target, plan)) {
         for (const auto &pose: plan) {
             double dx, dy, yaw, x, y;
@@ -30,15 +25,15 @@ void execute(const isaac_sim::PlanGoalConstPtr &goal, Server *as) {
             y = dx * sin_yaw + dy * cos_yaw;
             result.x.push_back(x);
             result.y.push_back(y);
-            result.yaw.push_back(angles::normalize_angle(tf2::getYaw(goal->target.pose.orientation) - yaw));
+            result.yaw.push_back(angles::normalize_angle(tf2::getYaw(pose.pose.orientation)) - yaw);
         }
-        as->setSucceeded(result);
+        plan_server.setSucceeded(result);
     } else {
-        as->setAborted();
+        plan_server.setAborted();
     }
 }
 
-bool clear_costmap(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res) {
+bool SimpleMoveBase::clear(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res) {
     planner_costmap_ros->resetLayers();
     ros::Duration(2.0).sleep();
     return true;
@@ -68,12 +63,7 @@ int main(int argc, char **argv) {
     tf2_ros::Buffer buffer(ros::Duration(10));
     tf2_ros::TransformListener tf(buffer);
     static_transform();
-    planner_costmap_ros = new costmap_2d::Costmap2DROS("costmap", buffer);
-    planner = new global_planner::GlobalPlanner();
-    planner->initialize("planner", planner_costmap_ros);
-    Server plan_server(node, "plan", boost::bind(&execute, _1, &plan_server), false);
-    ros::ServiceServer clear_costmap_server = node.advertiseService("clear_costmap", clear_costmap);
-    plan_server.start();
+    std::shared_ptr<SimpleMoveBase> simple_move_base(new SimpleMoveBase(buffer));
     ros::spin();
     return 0;
 }
