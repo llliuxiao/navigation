@@ -6,7 +6,7 @@ SimpleMoveBase::SimpleMoveBase(tf2_ros::Buffer &tf_buffer) :
     planner_costmap_ros = new costmap_2d::Costmap2DROS("costmap", buffer);
     planner = new global_planner::GlobalPlanner();
     planner->initialize("planner", planner_costmap_ros);
-    clear_server = node.advertiseService("clear_costmap", &SimpleMoveBase::clear, this);
+    clear_server = node.advertiseService("clear", &SimpleMoveBase::clear, this);
     plan_server.start();
 }
 
@@ -34,6 +34,7 @@ void SimpleMoveBase::make_plan(const isaac_sim::PlanGoalConstPtr &goal) {
 }
 
 bool SimpleMoveBase::clear(std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &res) {
+    planner->clear();
     planner_costmap_ros->resetLayers();
     ros::Duration(2.0).sleep();
     return true;

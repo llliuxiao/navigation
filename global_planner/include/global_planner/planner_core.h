@@ -95,6 +95,8 @@ class GlobalPlanner : public nav_core::BaseGlobalPlanner {
 
         void initialize(std::string name, costmap_2d::Costmap2D* costmap, std::string frame_id);
 
+        void clear();
+
         /**
          * @brief Given a goal pose in the world, compute a plan
          * @param start The start pose
