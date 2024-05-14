@@ -219,13 +219,12 @@ void GlobalPlanner::clear() {
 bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,
                            std::vector<geometry_msgs::PoseStamped>& plan) {
     plan.clear();
-    double dx = goal.pose.position.x - last_goal.pose.position.x;
-    double dy = goal.pose.position.y - last_goal.pose.position.y;
-    double delta_distance = sqrt(dx * dx + dy * dy);
-    if (!last_plan.empty() && delta_distance <= costmap_->getResolution()) {
+    makePlan(start, goal, default_tolerance_, plan);
+    if (plan.empty()) {
         double min_distance;
         int pointer;
         for (int i = 0; i < last_plan.size(); i++) {
+            double dx, dy, delta_distance;
             dx = last_plan[i].pose.position.x - start.pose.position.x;
             dy = last_plan[i].pose.position.y - start.pose.position.y;
             delta_distance = sqrt(dx * dx + dy * dy);
@@ -237,8 +236,6 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
         for (int i = pointer;i < last_plan.size();i++) {
             plan.push_back(last_plan[i]);
         }
-    } else {
-      makePlan(start, goal, default_tolerance_, plan);
     }
     last_plan = plan;
     last_goal = goal;
