@@ -218,9 +218,31 @@ void GlobalPlanner::clear() {
 
 bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,
                            std::vector<geometry_msgs::PoseStamped>& plan) {
+    int nx = costmap_->getSizeInCellsX();
     plan.clear();
+    std::set<int> tag;
+    for (auto & pose : last_plan) {
+        double wx = pose.pose.position.x;
+        double wy = pose.pose.position.y;
+        double start_x, start_y;
+        worldToMap(wx, wy, start_x, start_y);
+        int stc = (int)start_x + nx * (int)start_y;
+        for(int j = -5;j<5;j++){
+            for(int k = -5;k<5;k++){
+                tag.insert(stc+j+(k*nx));
+            }
+        }
+    }
+    bool obstacle = last_plan.empty();
+    for(int it : tag) {
+        if(costmap_->getCharMap()[it]>=254){
+            obstacle = true;
+            break;
+        }
+    }
     makePlan(start, goal, default_tolerance_, plan);
-    if (plan.empty()) {
+    if (plan.empty() or !obstacle) {
+        plan.clear();
         double min_distance;
         int pointer;
         for (int i = 0; i < last_plan.size(); i++) {
