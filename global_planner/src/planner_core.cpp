@@ -221,17 +221,19 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
     int nx = costmap_->getSizeInCellsX();
     plan.clear();
     std::set<int> tag;
-    for (auto & pose : last_plan) {
+    for (int i = 0; i < std::min(int(last_plan.size()), 100); i++) {
+        geometry_msgs::PoseStamped pose = last_plan[i];
         double wx = pose.pose.position.x;
         double wy = pose.pose.position.y;
         double start_x, start_y;
         worldToMap(wx, wy, start_x, start_y);
         int stc = (int)start_x + nx * (int)start_y;
-        for(int j = -5;j<5;j++){
-            for(int k = -5;k<5;k++){
+        for(int j = -3;j<3;j++){
+            for(int k = -3;k<3;k++){
                 tag.insert(stc+j+(k*nx));
             }
         }
+
     }
     bool obstacle = last_plan.empty();
     for(int it : tag) {
